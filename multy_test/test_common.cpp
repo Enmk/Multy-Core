@@ -13,6 +13,7 @@
 #include "gtest/gtest.h"
 
 #include <memory>
+#include <regex>
 
 namespace
 {
@@ -105,18 +106,18 @@ GTEST_TEST(VersionTest, get_version)
     Version version;
     HANDLE_ERROR(get_version(&version));
 
-
-    if (strstr("dummy", version.note) != nullptr)
-    {
-        // Not a tagged version
-        ASSERT_EQ(0, version.major + version.minor + version.build);
-    }
-    else
-    {
-        // tagged version with proper version number
-        ASSERT_NE(0, version.major + version.minor + version.build);
-    }
+    ASSERT_NE(nullptr, version.commit);
     ASSERT_NE(nullptr, version.note);
+
+    // Builds in version branch should be properly versioned.
+    std::smatch match;
+    if (std::regex_match(std::string(version.commit), match, std::regex(R"re(v(\d+).(\d+):.*)re")))
+    {
+        ASSERT_NE(0, version.major + version.minor + version.build);
+        ASSERT_EQ(2, match.size());
+        ASSERT_EQ(std::to_string(version.major), match[1]);
+        ASSERT_EQ(std::to_string(version.minor), match[2]);
+    }
 }
 
 GTEST_TEST(VersionTest, make_version_string)
